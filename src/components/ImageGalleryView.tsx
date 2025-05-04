@@ -5,6 +5,7 @@ import { GridSystem } from "@/components";
 import ImageZoom from "./ImageZoom";
 import { X, ZoomIn } from "lucide-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface ImageItem {
   id: string;
@@ -127,10 +128,12 @@ const GalleryItem = ({
       layout
     >
       <div className="relative aspect-square w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
-        <img
+        <Image
           src={image.url}
           alt={image.name}
-          className="h-full w-full object-cover"
+          className="object-cover"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           onClick={onToggleSelect}
         />
       </div>

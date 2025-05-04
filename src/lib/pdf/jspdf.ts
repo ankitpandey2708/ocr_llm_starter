@@ -174,7 +174,7 @@ export async function createMultiPagePdf(
   
   try {
     // Create each page
-    let imageErrors: string[] = [];
+    const imageErrors: string[] = [];
     
     imageTextPairs.forEach((pair, index) => {
       // Add a new page for all but the first item

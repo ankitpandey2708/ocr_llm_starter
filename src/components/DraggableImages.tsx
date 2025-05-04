@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, Reorder, useDragControls } from "framer-motion";
+import { Reorder, useDragControls } from "framer-motion";
 import { GripVertical, X, ZoomIn } from "lucide-react";
+import Image from "next/image";
 
 interface ImageItem {
   id: string;
@@ -94,11 +95,13 @@ const DraggableImageItem = ({
       </div>
 
       <div className="relative flex-1 flex items-center overflow-hidden">
-        <div className="h-16 w-16 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700">
-          <img
+        <div className="h-16 w-16 overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 relative">
+          <Image
             src={image.url}
             alt={image.name}
-            className="h-full w-full object-cover transition-transform hover:scale-105"
+            className="object-cover transition-transform hover:scale-105"
+            fill
+            sizes="64px"
           />
         </div>
         <span className="ml-3 truncate text-sm">{image.name}</span>

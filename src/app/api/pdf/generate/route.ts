@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createMultiPagePdf } from "@/lib/pdf/jspdf";
-import { handlePdfError, PdfErrorType, PdfGenerationError } from "@/lib/pdf/error";
+import { handlePdfError, PdfErrorType } from "@/lib/pdf/error";
 import { logger } from "@/lib/utils/logger";
 import { cleanupLeftoverTempFiles } from '@/lib/utils/server';
 
@@ -130,10 +130,10 @@ export async function POST(request: Request) {
       }
     });
     
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     logger.error('Error generating PDF', {
-      error: error.message || 'Unknown error',
-      stack: error.stack
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     });
     
     // Use the PDF error handler to get a standardized error

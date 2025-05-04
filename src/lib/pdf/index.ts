@@ -6,7 +6,6 @@
  */
 
 import PDFDocument from 'pdfkit';
-import { Readable } from 'stream';
 import { Buffer } from 'buffer';
 
 // Import PDFKit types

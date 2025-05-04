@@ -30,7 +30,7 @@ const ResponsiveText = ({
   const getTypographyClasses = () => {
     if (variant.includes(".")) {
       const [category, size] = variant.split(".");
-      // @ts-ignore - We're being dynamic here, but we know the structure
+      // @ts-expect-error - We're being dynamic here, but we know the structure
       return responsiveFontScale[category][size];
     }
     return responsiveFontScale[variant as keyof typeof responsiveFontScale];

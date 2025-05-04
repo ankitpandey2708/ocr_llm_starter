@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Info, XCircle, AlertTriangle } from "lucide-react";
+import { XCircle, AlertTriangle } from "lucide-react";
 
 export interface ErrorDisplayProps {
   message: string;

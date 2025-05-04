@@ -5,45 +5,13 @@ import { FolderSelector, ImageFile } from "@/components/FolderSelector";
 import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 import { Button } from "@/components/Button";
 import { toast } from "react-toastify";
-import { FileText, Download, AlertCircle, X, FileType, ArrowRight, Copy } from "lucide-react";
+import { FileText, Download, X, FileType } from "lucide-react";
 import { Image as ImageIcon } from "lucide-react";
-import { DebugInfo } from "@/components/DebugInfo";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import CopyButton from "@/components/CopyButton";
+import Image from "next/image";
 
-// Helper function to check image magic numbers
-const validateImageMagicNumbers = async (file: File): Promise<boolean> => {
-  try {
-    // Read the first few bytes of the file
-    const headerBytes = await file.slice(0, 12).arrayBuffer();
-    const headerView = new Uint8Array(headerBytes);
-    
-    // JPEG format: FF D8 FF
-    if (headerView[0] === 0xFF && headerView[1] === 0xD8 && headerView[2] === 0xFF) {
-      console.log(`File: ${file.name} - Magic number confirms JPEG format`);
-      return true;
-    } 
-    // PNG format: 89 50 4E 47 0D 0A 1A 0A
-    else if (
-      headerView[0] === 0x89 && headerView[1] === 0x50 && 
-      headerView[2] === 0x4E && headerView[3] === 0x47 &&
-      headerView[4] === 0x0D && headerView[5] === 0x0A &&
-      headerView[6] === 0x1A && headerView[7] === 0x0A
-    ) {
-      console.log(`File: ${file.name} - Magic number confirms PNG format`);
-      return true;
-    } 
-    // Magic numbers don't match known image formats
-    else {
-      console.warn(`File: ${file.name} - Magic number doesn't match supported image formats`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`Error validating file format for ${file.name}:`, error);
-    return false;
-  }
-};
-
+// Interface definitions
 interface OcrResult {
   fileName: string;
   text?: string;
@@ -110,7 +78,6 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 export default function Home() {
   const [imageFiles, setImageFiles] = useState<ImageFile[]>([]);
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [hasSelectedFolder, setHasSelectedFolder] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrResults, setOcrResults] = useState<OcrResult[] | null>(null);
@@ -138,7 +105,6 @@ export default function Home() {
         const hasResults = savedOcrResults !== null;
         if (hasResults) {
           setHasSelectedFolder(true);
-          setSelectedFolder('Previously processed images');
         }
         
         // Load debug preference
@@ -227,7 +193,6 @@ export default function Home() {
         });
         
         // Reset app state to initial state
-        setSelectedFolder(null);
         setHasSelectedFolder(false);
         setOcrResults(null);
         setPdfUrl(null);
@@ -267,7 +232,6 @@ export default function Home() {
     }
     
     setImageFiles(files);
-    setSelectedFolder(files.length > 0 ? "Selected files" : null);
     setHasSelectedFolder(files.length > 0);
     setOcrResults(null); // Reset previous results when selecting a new folder
     setPdfUrl(null); // Reset PDF URL when selecting a new folder
@@ -290,7 +254,6 @@ export default function Home() {
       // If this was the last image, reset the app state
       if (updatedFiles.length === 0) {
         // Reset folder selection state
-        setSelectedFolder(null);
         setHasSelectedFolder(false);
         setOcrResults(null);
         setPdfUrl(null);
@@ -532,13 +495,16 @@ export default function Home() {
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {imageFiles.map((file, index) => (
                       <div key={`image-${index}`} className="relative group rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
-                        {/* Use next/image or add loading="eager" with priority for first 4 images */}
-                        <img
-                          src={file.preview}
-                          loading={index < 4 ? "eager" : "lazy"} 
-                          alt={file.file.name}
-                          className="w-full h-48 object-cover transition-opacity group-hover:opacity-75"
-                        />
+                        <div className="relative w-full h-48">
+                          <Image
+                            src={file.preview}
+                            alt={file.file.name}
+                            className="object-cover transition-opacity group-hover:opacity-75"
+                            fill
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                            priority={index < 4}
+                          />
+                        </div>
                         <button
                           onClick={() => handleRemoveImage(index)}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"

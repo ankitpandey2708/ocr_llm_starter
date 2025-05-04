@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { isTouchDevice } from "../lib/utils/touchInteractions";
@@ -19,7 +19,6 @@ interface MobileImageGalleryProps {
   initialIndex?: number;
   onClose?: () => void;
   isFullscreen?: boolean;
-  onFullscreenToggle?: (fullscreen: boolean) => void;
 }
 
 /**
@@ -34,7 +33,6 @@ const MobileImageGallery = ({
   initialIndex = 0,
   onClose,
   isFullscreen = false,
-  onFullscreenToggle,
 }: MobileImageGalleryProps) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isTouch, setIsTouch] = useState(false);
@@ -49,18 +47,18 @@ const MobileImageGallery = ({
     setIsTouch(isTouchDevice());
   }, []);
 
-  // Navigate to next/previous image
-  const goToNext = () => {
+  // Navigate to next/previous image, wrapped in useCallback to avoid recreating on each render
+  const goToNext = useCallback(() => {
     if (currentIndex < images.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
-  };
+  }, [currentIndex, images.length]);
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     }
-  };
+  }, [currentIndex]);
 
   // Handle swipe for touch devices
   const handleDragEnd = (
@@ -92,7 +90,7 @@ const MobileImageGallery = ({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [currentIndex]);
+  }, [currentIndex, goToNext, goToPrevious, onClose]);
 
   // Mobile-specific styles
   const mobileStyles = isTouch

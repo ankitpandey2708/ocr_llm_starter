@@ -1,7 +1,7 @@
 "use client";
 
 interface DebugInfoProps {
-  data: any;
+  data: Record<string, unknown>;
   title?: string;
   show?: boolean;
 }

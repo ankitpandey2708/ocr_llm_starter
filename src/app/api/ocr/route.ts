@@ -5,7 +5,7 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { v4 as uuidv4 } from "uuid";
-import { createUserContent, createPartFromUri } from "@google/genai";
+import { createUserContent } from "@google/genai";
 
 /**
  * Error types for the OCR API
@@ -31,8 +31,8 @@ interface OcrResult {
 /**
  * Determine the type of error based on the error message
  */
-function determineErrorType(error: any): { type: OcrErrorType, message: string } {
-  const errorMessage = error.message || "Unknown error";
+function determineErrorType(error: Error | unknown): { type: OcrErrorType, message: string } {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   
   if (errorMessage.includes("API key")) {
     return { 
@@ -168,6 +168,12 @@ async function processImagesSequentially(files: File[]): Promise<OcrResult[]> {
           success: false
         });
         
+        // Check if this is a critical error that should stop processing
+        if (error instanceof Error && isCriticalError(error)) {
+          logger.warn(`Stopping OCR processing batch due to critical error: ${errorMessage}`);
+          break;
+        }
+        
         // In MVP, we stop processing after first API error
         logger.warn(`Stopping OCR processing batch after error in file ${file.name}`);
         break;
@@ -281,20 +287,20 @@ export async function POST(request: Request) {
         failureCount
       }
     });
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     logger.error("OCR API error", {
-      error: error.message || "Unknown error",
-      stack: error.stack
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     });
     
     logger.jobEnd('OCR', {
       successCount: 0,
       failureCount: 1,
-      error: error.message || "Unknown error"
+      error: error instanceof Error ? error.message : String(error)
     });
     
     return NextResponse.json(
-      { error: error.message || "An unexpected error occurred" },
+      { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

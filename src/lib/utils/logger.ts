@@ -11,7 +11,7 @@ interface LogEntry {
   timestamp: string;
   level: LogLevel;
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**
@@ -29,7 +29,7 @@ function formatLogEntry(entry: LogEntry): string {
 function createLogEntry(
   level: LogLevel,
   message: string,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): LogEntry {
   return {
     timestamp: new Date().toISOString(),
@@ -68,35 +68,35 @@ export const logger = {
   /**
    * Log a debug message
    */
-  debug: (message: string, context?: Record<string, any>) => {
+  debug: (message: string, context?: Record<string, unknown>) => {
     writeLog(createLogEntry('debug', message, context));
   },
   
   /**
    * Log an info message
    */
-  info: (message: string, context?: Record<string, any>) => {
+  info: (message: string, context?: Record<string, unknown>) => {
     writeLog(createLogEntry('info', message, context));
   },
   
   /**
    * Log a warning message
    */
-  warn: (message: string, context?: Record<string, any>) => {
+  warn: (message: string, context?: Record<string, unknown>) => {
     writeLog(createLogEntry('warn', message, context));
   },
   
   /**
    * Log an error message
    */
-  error: (message: string, context?: Record<string, any>) => {
+  error: (message: string, context?: Record<string, unknown>) => {
     writeLog(createLogEntry('error', message, context));
   },
   
   /**
    * Log the start of a job
    */
-  jobStart: (jobType: string, context?: Record<string, any>) => {
+  jobStart: (jobType: string, context?: Record<string, unknown>) => {
     writeLog(createLogEntry('info', `Job started: ${jobType}`, context));
   },
   
@@ -112,7 +112,7 @@ export const logger = {
     }: {
       successCount?: number;
       failureCount?: number;
-      [key: string]: any;
+      [key: string]: unknown;
     } = {}
   ) => {
     writeLog(createLogEntry('info', `Job completed: ${jobType}`, {
@@ -125,11 +125,11 @@ export const logger = {
   /**
    * Log a Gemini API error
    */
-  geminiApiError: (error: any, fileName?: string) => {
+  geminiApiError: (error: Error | unknown, fileName?: string) => {
     writeLog(createLogEntry('error', 'Gemini API error', {
-      message: error.message || 'Unknown error',
+      message: error instanceof Error ? error.message : 'Unknown error',
       fileName,
-      stack: error.stack
+      stack: error instanceof Error ? error.stack : undefined
     }));
   },
   
@@ -145,7 +145,7 @@ export const logger = {
     }: {
       imageCount?: number;
       message?: string;
-      error?: any;
+      error?: Error | null | unknown;
     } = {}
   ) => {
     if (success) {
@@ -157,8 +157,8 @@ export const logger = {
       writeLog(createLogEntry('error', 'PDF generation failed', {
         imageCount,
         message,
-        errorMessage: error?.message || 'Unknown error',
-        errorStack: error?.stack
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
       }));
     }
   },
@@ -186,7 +186,7 @@ export const logger = {
     filePath: string,
     fileName: string,
     success: boolean,
-    error?: any
+    error?: Error | unknown
   ) => {
     if (success) {
       writeLog(createLogEntry('debug', `Temporary file deleted: ${fileName}`, {
@@ -198,8 +198,8 @@ export const logger = {
       writeLog(createLogEntry('warn', `Failed to delete temporary file: ${fileName}`, {
         filePath,
         fileName,
-        errorMessage: error?.message || 'Unknown error',
-        errorStack: error?.stack,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
         timestamp: new Date().toISOString()
       }));
     }

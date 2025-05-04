@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "./Button";
 import { Upload } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -16,12 +15,6 @@ const analyzeMimeType = async (file: File): Promise<boolean> => {
     // Read the first few bytes of the file to check headers
     const headerBytes = await file.slice(0, 12).arrayBuffer();
     const headerView = new Uint8Array(headerBytes);
-    
-    // Convert first bytes to hex for logging
-    const headerHex = Array.from(headerView)
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join(' ');
-    
     
     // Try to identify common image formats by magic numbers
     if (headerView[0] === 0xFF && headerView[1] === 0xD8 && headerView[2] === 0xFF) {
@@ -67,7 +60,7 @@ const analyzeMimeType = async (file: File): Promise<boolean> => {
 
 // Create optimized preview URLs that balance quality and performance
 const createOptimizedPreview = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     // For very large files, we'll create an optimized preview
     if (file.size > 5 * 1024 * 1024) { // 5MB threshold
       const reader = new FileReader();
@@ -168,20 +161,6 @@ export function FolderSelector({
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
-
-  const isImageSupported = (file: File): boolean => {
-    const fileName = file.name.toLowerCase();
-    const validExtension = (
-      fileName.endsWith(".jpg") ||
-      fileName.endsWith(".jpeg") ||
-      fileName.endsWith(".png") ||
-      fileName.endsWith(".webp") ||
-      fileName.endsWith(".heic") ||
-      fileName.endsWith(".heif")
-    );
-    
-    return validExtension;
   };
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {

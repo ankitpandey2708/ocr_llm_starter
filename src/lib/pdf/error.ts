@@ -29,12 +29,12 @@ export enum PdfErrorType {
  */
 export class PdfGenerationError extends Error {
   type: PdfErrorType;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   
   constructor(
     message: string, 
     type: PdfErrorType = PdfErrorType.UNKNOWN_ERROR,
-    details?: Record<string, any>
+    details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'PdfGenerationError';

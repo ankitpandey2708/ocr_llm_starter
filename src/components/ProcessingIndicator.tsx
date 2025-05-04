@@ -28,7 +28,7 @@ export function ProcessingIndicator({
         <p className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-1">{processingText}</p>
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
           This may take a moment depending on the number of images.
-          Please don't close the browser window.
+          Please don&apos;t close the browser window.
         </p>
       </div>
     </div>
