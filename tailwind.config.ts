@@ -42,16 +42,44 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(143 72% 29%)",
+          light: "hsl(143 55% 62%)",
+          foreground: "hsl(0 0% 100%)",
+        },
+        error: {
+          DEFAULT: "hsl(0 84% 60%)",
+          light: "hsl(0 84% 80%)",
+          foreground: "hsl(0 0% 100%)",
+        },
+        warning: {
+          DEFAULT: "hsl(38 92% 50%)",
+          light: "hsl(38 92% 69%)",
+          foreground: "hsl(0 0% 10%)",
+        },
+        info: {
+          DEFAULT: "hsl(217 91% 60%)",
+          light: "hsl(217 91% 80%)",
+          foreground: "hsl(0 0% 100%)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.5s infinite",
+      },
     },
   },
   plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
-  darkMode: ["class"],
+  darkMode: "class",
 };
 
 export default config; 

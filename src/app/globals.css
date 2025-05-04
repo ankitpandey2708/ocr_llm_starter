@@ -26,6 +26,16 @@
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
     --radius: 0.5rem;
+    
+    /* Semantic colors */
+    --success: 143 72% 29%;
+    --success-light: 143 55% 62%;
+    --error: 0 84% 60%;
+    --error-light: 0 84% 80%;
+    --warning: 38 92% 50%;
+    --warning-light: 38 92% 69%;
+    --info: 217 91% 60%;
+    --info-light: 217 91% 80%;
   }
 
   .dark {
@@ -48,6 +58,16 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+
+    /* Semantic colors - dark mode */
+    --success: 143 72% 35%;
+    --success-light: 143 55% 45%;
+    --error: 0 84% 65%;
+    --error-light: 0 84% 45%;
+    --warning: 38 92% 45%;
+    --warning-light: 38 92% 35%;
+    --info: 217 91% 65%;
+    --info-light: 217 91% 45%;
   }
 }
 
@@ -58,6 +78,41 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Subtle grain texture for backgrounds */
+  .bg-subtle-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-blend-mode: soft-light;
+    background-size: 200px;
+  }
+  
+  /* Subtle pattern for card backgrounds */
+  .bg-subtle-pattern {
+    background-image: 
+      linear-gradient(to right, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-position: center center;
+  }
+  
+  /* Dark mode pattern */
+  .dark .bg-subtle-pattern {
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  }
+  
+  /* Subtle dot pattern */
+  .bg-dot-pattern {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .dark .bg-dot-pattern {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   }
 }
 

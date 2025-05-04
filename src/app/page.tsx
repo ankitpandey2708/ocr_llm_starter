@@ -5,9 +5,11 @@ import { FolderSelector, ImageFile } from "@/components/FolderSelector";
 import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 import { Button } from "@/components/Button";
 import { toast } from "react-toastify";
-import { FileText, Download, AlertCircle, X, Image, FileType, ArrowRight } from "lucide-react";
+import { FileText, Download, AlertCircle, X, FileType, ArrowRight, Copy } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { DebugInfo } from "@/components/DebugInfo";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
+import CopyButton from "@/components/CopyButton";
 
 // Helper function to check image magic numbers
 const validateImageMagicNumbers = async (file: File): Promise<boolean> => {
@@ -59,12 +61,49 @@ interface ApiResponse {
   };
 }
 
-// Helper function to convert File to Base64 data URL
+// Helper function to convert File to Base64 data URL with optimization
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = () => {
+      // Create an image to get dimensions
+      const img = new window.Image();
+      img.onload = () => {
+        // If image is large, optimize it before converting to base64
+        if (img.width > 1200 || img.height > 1200) {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          let newWidth = img.width;
+          let newHeight = img.height;
+          const maxDimension = 1200;
+          
+          if (img.width > maxDimension || img.height > maxDimension) {
+            if (img.width > img.height) {
+              newWidth = maxDimension;
+              newHeight = (img.height / img.width) * maxDimension;
+            } else {
+              newHeight = maxDimension;
+              newWidth = (img.width / img.height) * maxDimension;
+            }
+          }
+          
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+          
+          // Get optimized data URL
+          const optimizedDataUrl = canvas.toDataURL(file.type, 0.8); // 0.8 quality
+          resolve(optimizedDataUrl);
+        } else {
+          // If image is already small, use the original
+          resolve(reader.result as string);
+        }
+      };
+      img.src = reader.result as string;
+    };
     reader.onerror = error => reject(error);
   });
 };
@@ -81,6 +120,62 @@ export default function Home() {
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [resetFolderSelector, setResetFolderSelector] = useState(false);
+  const [ocrProcessedThisSession, setOcrProcessedThisSession] = useState(false);
+
+  // Load form state from localStorage on initial load
+  useEffect(() => {
+    // Check if we're in the browser environment
+    if (typeof window !== 'undefined') {
+      try {
+        // Retrieve saved OCR results
+        const savedOcrResults = localStorage.getItem('ocrResults');
+        if (savedOcrResults) {
+          setOcrResults(JSON.parse(savedOcrResults));
+        }
+        
+        // We don't persist actual image files since they're too large,
+        // but we can track if results exist
+        const hasResults = savedOcrResults !== null;
+        if (hasResults) {
+          setHasSelectedFolder(true);
+          setSelectedFolder('Previously processed images');
+        }
+        
+        // Load debug preference
+        const savedDebugPref = localStorage.getItem('showDebug');
+        if (savedDebugPref !== null) {
+          setShowDebug(JSON.parse(savedDebugPref));
+        }
+      } catch (error) {
+        console.error('Error loading saved state:', error);
+        // Clear potentially corrupted storage
+        localStorage.removeItem('ocrResults');
+        localStorage.removeItem('showDebug');
+      }
+    }
+  }, []);
+
+  // Persist OCR results when they change
+  useEffect(() => {
+    if (ocrResults && typeof window !== 'undefined') {
+      localStorage.setItem('ocrResults', JSON.stringify(ocrResults));
+    }
+  }, [ocrResults]);
+
+  // Persist debug preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('showDebug', JSON.stringify(showDebug));
+    }
+  }, [showDebug]);
+
+  // Clear persisted data when starting fresh
+  const clearPersistedData = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('ocrResults');
+      // Don't remove debug preference as that's a user setting
+    }
+  }, []);
 
   // Show toast for OCR result errors
   useEffect(() => {
@@ -138,6 +233,7 @@ export default function Home() {
         setPdfUrl(null);
         setOcrError(null);
         setPdfError(null);
+        setOcrProcessedThisSession(false); // Reset the OCR processed flag
         
         // Trigger FolderSelector reset
         setResetFolderSelector(true);
@@ -160,9 +256,15 @@ export default function Home() {
     }
   }, [resetFolderSelector]);
 
+  // Modified handleFolderSelect to clear persisted data
   const handleFolderSelect = (files: ImageFile[]) => {
     // Clean up previous object URLs if any
     cleanupImageURLs();
+    
+    // Clear previous results when selecting new files
+    if (files.length > 0) {
+      clearPersistedData();
+    }
     
     setImageFiles(files);
     setSelectedFolder(files.length > 0 ? "Selected files" : null);
@@ -171,6 +273,7 @@ export default function Home() {
     setPdfUrl(null); // Reset PDF URL when selecting a new folder
     setOcrError(null); // Reset OCR errors when selecting a new folder
     setPdfError(null); // Reset PDF errors when selecting a new folder
+    setOcrProcessedThisSession(false); // Reset the OCR processed flag when selecting a new folder
   };
 
   const handleRemoveImage = (index: number) => {
@@ -193,6 +296,7 @@ export default function Home() {
         setPdfUrl(null);
         setOcrError(null);
         setPdfError(null);
+        setOcrProcessedThisSession(false); // Reset the OCR processed flag
         
         // Trigger FolderSelector reset to hide the "X images ready" message
         setResetFolderSelector(true);
@@ -204,6 +308,7 @@ export default function Home() {
     });
   };
 
+  // Modified processImages to save state after processing
   const processImages = async () => {
     setIsProcessing(true);
     setOcrResults(null);
@@ -282,6 +387,7 @@ export default function Home() {
       console.log("Results with base64 images:", debugSummary);
       
       setOcrResults(resultsWithImageUrls);
+      setOcrProcessedThisSession(true);
       
       // Show toast with summary
       const { successCount, failureCount } = data.summary;
@@ -390,7 +496,7 @@ export default function Home() {
         <div className="container max-w-5xl mx-auto px-4 md:px-6">
           <div className="flex items-center gap-4">
             <div className="bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl p-3 shadow-md shadow-indigo-500/10">
-              <Image className="w-6 h-6 text-white" />
+              <ImageIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">OmniScan OCR</h1>
@@ -421,27 +527,28 @@ export default function Home() {
               
               {showNoImagesWarning}
               
-              {imageFiles.length > 0 && (
-                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <div className={`flex ${imageFiles.length === 1 ? 'justify-center' : 'flex-wrap'} gap-3 max-h-60 overflow-y-auto p-1`}>
-                    {imageFiles.map((imageFile, index) => (
-                      <div 
-                        key={index} 
-                        className="relative group flex flex-col items-center p-3 bg-white dark:bg-slate-800 rounded-lg border-slate-200 dark:border-slate-700 border shadow-sm hover:shadow-md transition-all duration-200 w-[110px]"
-                      >
-                        <div 
-                          className="w-20 h-20 flex-shrink-0 bg-cover bg-center rounded-lg overflow-hidden mb-2 border border-slate-200 dark:border-slate-700" 
-                          style={{ backgroundImage: `url(${imageFile.preview})` }}
+              {hasSelectedFolder && imageFiles.length > 0 && (
+                <div className="mt-6 relative">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {imageFiles.map((file, index) => (
+                      <div key={`image-${index}`} className="relative group rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700">
+                        {/* Use next/image or add loading="eager" with priority for first 4 images */}
+                        <img
+                          src={file.preview}
+                          loading={index < 4 ? "eager" : "lazy"} 
+                          alt={file.file.name}
+                          className="w-full h-48 object-cover transition-opacity group-hover:opacity-75"
                         />
-                        <span className="truncate text-xs w-full text-center text-slate-700 dark:text-slate-300">{imageFile.file.name}</span>
                         <button
                           onClick={() => handleRemoveImage(index)}
-                          className="absolute -top-2 -right-2 p-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove image"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                           aria-label="Remove image"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X size={16} />
                         </button>
+                        <div className="p-2 text-xs truncate bg-white dark:bg-gray-800">
+                          {file.file.name}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -484,40 +591,61 @@ export default function Home() {
                 )}
 
                 {ocrResults && ocrResults.length > 0 && !isProcessing && (
-                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <div className="max-h-[350px] overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 p-4">
-                      {ocrResults.map((result, index) => (
-                        result.success && (
-                          <div 
-                            key={index} 
-                            className="p-4 rounded-xl border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50 mb-3 shadow-sm hover:shadow-md transition-all duration-200"
-                          >
-                            <div className="flex items-center justify-between mb-2.5 gap-3">
-                              <div className="flex items-center gap-2">
-                                <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-1.5">
-                                  <FileText className="w-3.5 h-3.5 text-green-700 dark:text-green-400" />
-                                </div>
-                                <div className="font-medium text-green-800 dark:text-green-300">Result {index + 1}</div>
+                  <div className="mt-8 space-y-6">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Extracted Text Results</h2>
+                    
+                    {/* Add a copy all button for all extracted text */}
+                    {ocrResults.some(result => result.success && result.text) && (
+                      <div className="flex items-center mb-4">
+                        <CopyButton 
+                          text={ocrResults
+                            .filter(result => result.success && result.text)
+                            .map(result => `[${result.fileName}]\n${result.text}`)
+                            .join('\n\n')
+                          }
+                          size={20}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Copy all extracted text</span>
+                      </div>
+                    )}
+                    
+                    {ocrResults.map((result, index) => (
+                      <div key={`ocr-result-${index}`} className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">{result.fileName}</h3>
+                          
+                          {/* Add copy button for individual text results */}
+                          {result.success && result.text && (
+                            <CopyButton text={result.text} />
+                          )}
+                        </div>
+                        
+                        {result.success ? (
+                          <div className="mt-2">
+                            {result.text ? (
+                              <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded text-gray-800 dark:text-gray-200 whitespace-pre-wrap text-sm font-mono">
+                                {result.text}
                               </div>
-                              <div className="text-xs text-green-700 dark:text-green-400 truncate max-w-[200px]">{result.fileName}</div>
-                            </div>
-                            <div className="whitespace-pre-wrap max-h-40 overflow-y-auto p-3 bg-white dark:bg-slate-800 rounded-lg border shadow-sm text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
-                              {result.text ? 
-                                result.text : 
-                                <span className="text-gray-400 italic">No text extracted</span>
-                              }
-                            </div>
+                            ) : (
+                              <p className="text-amber-600 dark:text-amber-400">No text was detected in this image.</p>
+                            )}
                           </div>
-                        )
-                      ))}
-                    </div>
+                        ) : (
+                          <div className="text-red-500 dark:text-red-400 text-sm mt-1">
+                            {result.error || "Failed to process image"}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
             </section>
           )}
 
-          {ocrResults && ocrResults.length > 0 && !isProcessing && (
+          {/* Only show the Download Results section if OCR was processed in this session */}
+          {ocrResults && ocrResults.length > 0 && !isProcessing && ocrProcessedThisSession && (
             <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-200 dark:shadow-slate-900/30 overflow-hidden border border-slate-100 dark:border-slate-700">
               <div className="p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
@@ -555,13 +683,6 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="w-full py-6 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
-        <div className="container max-w-5xl mx-auto px-4 md:px-6 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Extract text from images with precision and generate beautiful side-by-side PDFs
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

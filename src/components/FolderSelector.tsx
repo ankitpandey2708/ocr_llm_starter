@@ -65,6 +65,60 @@ const analyzeMimeType = async (file: File): Promise<boolean> => {
   }
 };
 
+// Create optimized preview URLs that balance quality and performance
+const createOptimizedPreview = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // For very large files, we'll create an optimized preview
+    if (file.size > 5 * 1024 * 1024) { // 5MB threshold
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create a canvas to resize the image
+          const canvas = document.createElement('canvas');
+          
+          // Calculate new dimensions (max 800px width or height)
+          const maxDimension = 800;
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > height && width > maxDimension) {
+            height = Math.round(height * (maxDimension / width));
+            width = maxDimension;
+          } else if (height > maxDimension) {
+            width = Math.round(width * (maxDimension / height));
+            height = maxDimension;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw the resized image
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Convert to data URL with reduced quality
+          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(optimizedDataUrl);
+        };
+        img.onerror = () => {
+          // If optimization fails, fall back to object URL
+          resolve(URL.createObjectURL(file));
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        // If reading fails, fall back to object URL
+        resolve(URL.createObjectURL(file));
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // For smaller files, use standard object URL
+      resolve(URL.createObjectURL(file));
+    }
+  });
+};
+
 interface FolderSelectorProps {
   onFolderSelect: (files: ImageFile[]) => void;
   reset?: boolean; // Flag to reset the component's state
@@ -185,8 +239,8 @@ export function FolderSelector({
           }
           
           try {
-            // Create URL for preview/thumbnail
-            const preview = URL.createObjectURL(file);
+            // Create optimized preview for better performance
+            const preview = await createOptimizedPreview(file);
             
             result.push({ 
               file, 
@@ -251,7 +305,10 @@ export function FolderSelector({
       />
       
       <div className="w-full max-w-md">
-        <div className="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors duration-200 rounded-xl p-8 text-center">
+        <div 
+          onClick={handleButtonClick}
+          className="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors duration-200 rounded-xl p-8 text-center cursor-pointer"
+        >
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-200"></div>
           
@@ -269,15 +326,7 @@ export function FolderSelector({
               </p>
             </div>
             
-            <Button 
-              onClick={handleButtonClick}
-              className="flex items-center gap-2"
-              size="default"
-              variant="primary"
-            >
-              <Upload className="w-4 h-4" />
-              Browse Files
-            </Button>
+          
           </div>
         </div>
       </div>

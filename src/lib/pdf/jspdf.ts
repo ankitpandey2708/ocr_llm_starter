@@ -247,7 +247,7 @@ export async function createMultiPagePdf(
       doc.setFontSize(14);
       
       // Add title with filename
-      doc.text(`Extracted Text from: ${pair.filename}`, textX, margin + 5);
+      doc.text(`${pair.filename}`, textX, margin + 5);
       
       // Add the actual text content
       doc.setFontSize(10);
