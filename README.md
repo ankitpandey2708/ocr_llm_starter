@@ -1,4 +1,15 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Image OCR to Side-by-Side PDF Converter
+
+A Next.js application that allows users to select a folder of images, processes them with Google Gemini API for OCR text extraction, and generates a downloadable PDF with images on the left and extracted text on the right.
+
+## Features
+
+- **Folder Selection**: Select a folder containing image files for processing
+- **Image Processing**: Automatic identification and filtering of supported image formats (JPG, JPEG, PNG)
+- **OCR Processing**: Text extraction from images using Google Gemini 2.0 Flash API
+- **PDF Generation**: Creation of a side-by-side PDF with the original image on the left and extracted text on the right
+- **Secure Processing**: Images are processed securely with no persistent storage
+- **Error Handling**: Comprehensive error feedback for various failure scenarios
 
 ## Getting Started
 
@@ -16,7 +27,34 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Setup
+
+You'll need to set up the following environment variables:
+
+- `GEMINI_API_KEY`: Your Google Gemini API key for OCR processing
+
+## Technical Implementation
+
+The application is built using:
+
+- Next.js for the frontend and API routes
+- Google Gemini 2.0 Flash API for OCR text extraction
+- Server-side PDF generation
+- Client-side folder and file selection
+
+## Project Structure
+
+The project follows a standard Next.js application structure with:
+
+- Frontend UI components for folder selection and PDF download
+- Backend API endpoints for image processing and PDF generation
+- Secure handling of API keys and temporary file storage
+
+## Security Considerations
+
+- API keys are stored securely server-side
+- Images are only stored in memory during processing
+- All temporary files are deleted after processing
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
