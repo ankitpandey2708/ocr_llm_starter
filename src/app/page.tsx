@@ -5,7 +5,7 @@ import { FolderSelector, ImageFile } from "@/components/FolderSelector";
 import { ProcessingIndicator } from "@/components/ProcessingIndicator";
 import { Button } from "@/components/Button";
 import { toast } from "react-toastify";
-import { FileText, Download, AlertCircle, X } from "lucide-react";
+import { FileText, Download, AlertCircle, X, Image, FileType, ArrowRight } from "lucide-react";
 import { DebugInfo } from "@/components/DebugInfo";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 
@@ -385,132 +385,182 @@ export default function Home() {
   const showNoImagesWarning = hasSelectedFolder && imageFiles.length === 0;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <header className="mb-12 text-center">
-        <h1 className="text-4xl font-bold mb-4">Image OCR to PDF Converter</h1>
-        <p className="text-lg text-muted-foreground">
-          Convert images to a side-by-side PDF with extracted text
-        </p>
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-slate-100">
+      <header className="w-full py-6 md:py-8 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <div className="container max-w-5xl mx-auto px-4 md:px-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl p-3 shadow-md shadow-indigo-500/10">
+              <Image className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-blue-500 bg-clip-text text-transparent">OmniScan OCR</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Extract text from images with precision</p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <main className="w-full max-w-3xl mx-auto space-y-8">
-        <section className="bg-card p-8 rounded-lg shadow-sm border-gray-200 border">
-          <h2 className="text-2xl font-semibold mb-6">Select Images</h2>
-          <div className="py-4">
-            <FolderSelector 
-              onFolderSelect={handleFolderSelect}
-              reset={resetFolderSelector}
-              currentFiles={imageFiles}
-            />
-          </div>
-          
-          {showNoImagesWarning }
-          
-          {imageFiles.length > 0 && (
-            <div className="mt-6 p-4 bg-muted rounded-md">
-              <h3 className="font-medium mb-3">Supported Images Found:</h3>
-              <div className="max-h-60 overflow-y-auto space-y-2 text-sm">
-                {imageFiles.map((imageFile, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center gap-2 p-2 bg-background rounded border-gray-200 border"
-                  >
-                    <div 
-                      className="w-8 h-8 flex-shrink-0 bg-cover bg-center rounded" 
-                      style={{ backgroundImage: `url(${imageFile.preview})` }}
-                    />
-                    <span className="truncate flex-1">{imageFile.file.name}</span>
-                    <button
-                      onClick={() => handleRemoveImage(index)}
-                      className="p-1 hover:bg-gray-200 rounded-full transition-colors"
-                      title="Remove image"
-                      aria-label="Remove image"
-                    >
-                      <X className="w-4 h-4 text-gray-500" />
-                    </button>
-                  </div>
-                ))}
+      <main className="flex-1 container max-w-5xl mx-auto px-4 md:px-6 py-8 md:py-12">
+        <div className="grid gap-8 md:gap-12">
+          <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-200 dark:shadow-slate-900/30 overflow-hidden border border-slate-100 dark:border-slate-700">
+            <div className="p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-full p-2">
+                  <FileType className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h2 className="text-xl font-semibold">Select Images</h2>
               </div>
-            </div>
-          )}
-        </section>
-
-        {imageFiles.length > 0 && (
-          <section className="bg-card p-8 rounded-lg shadow-sm border-gray-200 border">
-            <h2 className="text-2xl font-semibold mb-6">Process Images</h2>
-            
-            <ProcessingIndicator isProcessing={isProcessing} />
-            
-            {!isProcessing && ocrError && (
-              <div className="mb-4">
-                <ErrorDisplay message={ocrError} category="OCR" />
+              
+              <div className="py-2">
+                <FolderSelector 
+                  onFolderSelect={handleFolderSelect}
+                  reset={resetFolderSelector}
+                  currentFiles={imageFiles}
+                />
               </div>
-            )}
-            
-            {!isProcessing && (
-              <div className="flex justify-center py-4">
-                <Button 
-                  onClick={processImages} 
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-3 px-6 rounded-lg transform hover:scale-105 transition-all shadow-lg"
-                  size="lg"
-                  disabled={isProcessing}
-                >
-                  <FileText className="w-5 h-5" />
-                  Extract Text
-                </Button>
-              </div>
-            )}
-
-            {ocrResults && ocrResults.length > 0 && !isProcessing && (
-              <div className="mt-6 p-4 bg-muted rounded-md">
-                <div className="max-h-80 overflow-y-auto space-y-2 text-sm">
-                  {ocrResults.map((result, index) => (
-                    result.success && (
+              
+              {showNoImagesWarning}
+              
+              {imageFiles.length > 0 && (
+                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                  <div className={`flex ${imageFiles.length === 1 ? 'justify-center' : 'flex-wrap'} gap-3 max-h-60 overflow-y-auto p-1`}>
+                    {imageFiles.map((imageFile, index) => (
                       <div 
                         key={index} 
-                        className="p-3 rounded border bg-green-50 border-green-200"
+                        className="relative group flex flex-col items-center p-3 bg-white dark:bg-slate-800 rounded-lg border-slate-200 dark:border-slate-700 border shadow-sm hover:shadow-md transition-all duration-200 w-[110px]"
                       >
-                        <div className="whitespace-pre-wrap max-h-32 overflow-y-auto p-2 bg-white rounded border">
-                          {result.text}
-                        </div>
+                        <div 
+                          className="w-20 h-20 flex-shrink-0 bg-cover bg-center rounded-lg overflow-hidden mb-2 border border-slate-200 dark:border-slate-700" 
+                          style={{ backgroundImage: `url(${imageFile.preview})` }}
+                        />
+                        <span className="truncate text-xs w-full text-center text-slate-700 dark:text-slate-300">{imageFile.file.name}</span>
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 p-1 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove image"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    )
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </section>
-        )}
 
-        {ocrResults && ocrResults.length > 0 && !isProcessing && (
-          <section>
-            <ProcessingIndicator isProcessing={isPdfGenerating} processingText="Generating PDF..." />
-            
-            {!isPdfGenerating && pdfError && (
-              <div className="mb-4">
-                <ErrorDisplay message={pdfError} category="PDF" />
+          {imageFiles.length > 0 && (
+            <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-200 dark:shadow-slate-900/30 overflow-hidden border border-slate-100 dark:border-slate-700">
+              <div className="p-6 md:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-2">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold">Extract Text</h2>
+                </div>
+                
+                <ProcessingIndicator isProcessing={isProcessing} />
+                
+                {!isProcessing && ocrError && (
+                  <div className="mb-6">
+                    <ErrorDisplay message={ocrError} category="OCR" />
+                  </div>
+                )}
+                
+                {!isProcessing && (
+                  <div className="flex justify-center py-4">
+                    <Button 
+                      onClick={processImages} 
+                      className="flex items-center gap-2"
+                      size="lg"
+                      variant="primary"
+                      disabled={isProcessing}
+                    >
+                      <FileText className="w-5 h-5" />
+                      Extract Text
+                    </Button>
+                  </div>
+                )}
+
+                {ocrResults && ocrResults.length > 0 && !isProcessing && (
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div className="max-h-[350px] overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 p-4">
+                      {ocrResults.map((result, index) => (
+                        result.success && (
+                          <div 
+                            key={index} 
+                            className="p-4 rounded-xl border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/50 mb-3 shadow-sm hover:shadow-md transition-all duration-200"
+                          >
+                            <div className="flex items-center justify-between mb-2.5 gap-3">
+                              <div className="flex items-center gap-2">
+                                <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-1.5">
+                                  <FileText className="w-3.5 h-3.5 text-green-700 dark:text-green-400" />
+                                </div>
+                                <div className="font-medium text-green-800 dark:text-green-300">Result {index + 1}</div>
+                              </div>
+                              <div className="text-xs text-green-700 dark:text-green-400 truncate max-w-[200px]">{result.fileName}</div>
+                            </div>
+                            <div className="whitespace-pre-wrap max-h-40 overflow-y-auto p-3 bg-white dark:bg-slate-800 rounded-lg border shadow-sm text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
+                              {result.text ? 
+                                result.text : 
+                                <span className="text-gray-400 italic">No text extracted</span>
+                              }
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            
-            {!isPdfGenerating && ocrResults.filter(r => r.success).length > 0 && (
-              <div className="flex flex-col items-center py-4 space-y-4">
-                <Button 
-                  onClick={generatePdf} 
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-3 px-6 rounded-lg transform hover:scale-105 transition-all shadow-lg"
-                  size="lg"
-                  disabled={isPdfGenerating}
-                >
-                  <FileText className="w-5 h-5" />
-                  Download PDF
-                </Button>
+            </section>
+          )}
+
+          {ocrResults && ocrResults.length > 0 && !isProcessing && (
+            <section className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg shadow-slate-200 dark:shadow-slate-900/30 overflow-hidden border border-slate-100 dark:border-slate-700">
+              <div className="p-6 md:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-purple-100 dark:bg-purple-900/30 rounded-full p-2">
+                    <Download className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold">Download Results</h2>
+                </div>
+                
+                <ProcessingIndicator isProcessing={isPdfGenerating} processingText="Generating PDF..." />
+                
+                {!isPdfGenerating && pdfError && (
+                  <div className="mb-6">
+                    <ErrorDisplay message={pdfError} category="PDF" />
+                  </div>
+                )}
+                
+                {!isPdfGenerating && ocrResults.filter(r => r.success).length > 0 && (
+                  <div className="flex flex-col items-center py-4 space-y-3">
+                    <Button 
+                      onClick={generatePdf} 
+                      className="flex items-center gap-2"
+                      size="lg"
+                      variant="primary"
+                      disabled={isPdfGenerating}
+                    >
+                      <Download className="w-5 h-5" />
+                      Download PDF
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </section>
-        )}
+            </section>
+          )}
+        </div>
       </main>
 
-      <footer className="mt-auto pt-12 pb-6 text-center text-sm text-muted-foreground">
-       
+      <footer className="w-full py-6 border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <div className="container max-w-5xl mx-auto px-4 md:px-6 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Extract text from images with precision and generate beautiful side-by-side PDFs
+          </p>
+        </div>
       </footer>
     </div>
   );

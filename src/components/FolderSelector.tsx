@@ -250,23 +250,47 @@ export function FolderSelector({
         aria-label="Select images"
       />
       
-      <Button 
-        onClick={handleButtonClick}
-        className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-medium py-3 px-6 rounded-lg transform hover:scale-105 transition-all shadow-lg"
-        size="lg"
-      >
-        <Upload className="w-5 h-5" />
-        Browse
-      </Button>
+      <div className="w-full max-w-md">
+        <div className="group relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors duration-200 rounded-xl p-8 text-center">
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity duration-200"></div>
+          
+          <div className="relative space-y-4">
+            <div className="mx-auto bg-slate-100 dark:bg-slate-800 rounded-full p-3 w-16 h-16 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors duration-200">
+              <Upload className="w-8 h-8 text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-medium text-slate-700 dark:text-slate-300 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors duration-200">
+                Select Images
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                JPG, PNG, WEBP, HEIC formats accepted
+              </p>
+            </div>
+            
+            <Button 
+              onClick={handleButtonClick}
+              className="flex items-center gap-2"
+              size="default"
+              variant="primary"
+            >
+              <Upload className="w-4 h-4" />
+              Browse Files
+            </Button>
+          </div>
+        </div>
+      </div>
       
       {hasSelection && stats.supported > 0 && (
-        <div className="text-sm mt-3 space-y-1 text-center">
-          <p className="text-muted-foreground">
-            <span className="font-medium">{stats.supported}</span> images ready
+        <div className="text-sm mt-1 space-y-1 text-center">
+          <div className="inline-flex items-center px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full">
+            <span className="font-medium">{stats.supported}</span>
+            <span className="ml-1">images ready</span>
             {stats.supported !== stats.total && (
-              <> (from {stats.total} files)</>
+              <span className="ml-1 text-indigo-500 dark:text-indigo-400">(from {stats.total} files)</span>
             )}
-          </p>
+          </div>
         </div>
       )}
     </div>
