@@ -84,65 +84,10 @@ export default function Home() {
   const [ocrResults, setOcrResults] = useState<OcrResult[] | null>(null);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(true);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [resetFolderSelector, setResetFolderSelector] = useState(false);
   const [ocrProcessedThisSession, setOcrProcessedThisSession] = useState(false);
-
-  // Load form state from localStorage on initial load
-  useEffect(() => {
-    // Check if we're in the browser environment
-    if (typeof window !== 'undefined') {
-      try {
-        // Retrieve saved OCR results
-        const savedOcrResults = localStorage.getItem('ocrResults');
-        if (savedOcrResults) {
-          setOcrResults(JSON.parse(savedOcrResults));
-        }
-        
-        // We don't persist actual image files since they're too large,
-        // but we can track if results exist
-        const hasResults = savedOcrResults !== null;
-        if (hasResults) {
-          setHasSelectedFolder(true);
-        }
-        
-        // Load debug preference
-        const savedDebugPref = localStorage.getItem('showDebug');
-        if (savedDebugPref !== null) {
-          setShowDebug(JSON.parse(savedDebugPref));
-        }
-      } catch (error) {
-        console.error('Error loading saved state:', error);
-        // Clear potentially corrupted storage
-        localStorage.removeItem('ocrResults');
-        localStorage.removeItem('showDebug');
-      }
-    }
-  }, []);
-
-  // Persist OCR results when they change
-  useEffect(() => {
-    if (ocrResults && typeof window !== 'undefined') {
-      localStorage.setItem('ocrResults', JSON.stringify(ocrResults));
-    }
-  }, [ocrResults]);
-
-  // Persist debug preference
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('showDebug', JSON.stringify(showDebug));
-    }
-  }, [showDebug]);
-
-  // Clear persisted data when starting fresh
-  const clearPersistedData = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('ocrResults');
-      // Don't remove debug preference as that's a user setting
-    }
-  }, []);
 
   // Show toast for OCR result errors
   useEffect(() => {
@@ -219,15 +164,10 @@ export default function Home() {
     }
   }, [resetFolderSelector]);
 
-  // Modified handleFolderSelect to clear persisted data
+  // Modified handleFolderSelect
   const handleFolderSelect = (files: ImageFile[]) => {
     // Clean up previous object URLs if any
     cleanupImageURLs();
-    
-    // Clear previous results when selecting new files
-    if (files.length > 0) {
-      clearPersistedData();
-    }
     
     setImageFiles(files);
     setHasSelectedFolder(files.length > 0);
