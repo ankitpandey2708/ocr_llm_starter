@@ -10,6 +10,7 @@ import { Image as ImageIcon } from "lucide-react";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import CopyButton from "@/components/CopyButton";
 import Image from "next/image";
+import { fileToBase64, extractFilename, cleanupImageFiles, revokeObjectUrls } from "@/lib/utils/shared";
 
 // Interface definitions
 interface OcrResult {
@@ -29,52 +30,52 @@ interface ApiResponse {
   };
 }
 
-// Helper function to convert File to Base64 data URL with optimization
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      // Create an image to get dimensions
-      const img = new window.Image();
-      img.onload = () => {
-        // If image is large, optimize it before converting to base64
-        if (img.width > 1200 || img.height > 1200) {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Calculate new dimensions while maintaining aspect ratio
-          let newWidth = img.width;
-          let newHeight = img.height;
-          const maxDimension = 1200;
-          
-          if (img.width > maxDimension || img.height > maxDimension) {
-            if (img.width > img.height) {
-              newWidth = maxDimension;
-              newHeight = (img.height / img.width) * maxDimension;
-            } else {
-              newHeight = maxDimension;
-              newWidth = (img.width / img.height) * maxDimension;
-            }
-          }
-          
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-          ctx?.drawImage(img, 0, 0, newWidth, newHeight);
-          
-          // Get optimized data URL
-          const optimizedDataUrl = canvas.toDataURL(file.type, 0.8); // 0.8 quality
-          resolve(optimizedDataUrl);
-        } else {
-          // If image is already small, use the original
-          resolve(reader.result as string);
-        }
-      };
-      img.src = reader.result as string;
-    };
-    reader.onerror = error => reject(error);
-  });
-};
+// Helper function to convert File to Base64 data URL with optimization - Removed in favor of shared utility
+// const fileToBase64 = (file: File): Promise<string> => {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader();
+//     reader.readAsDataURL(file);
+//     reader.onload = () => {
+//       // Create an image to get dimensions
+//       const img = new window.Image();
+//       img.onload = () => {
+//         // If image is large, optimize it before converting to base64
+//         if (img.width > 1200 || img.height > 1200) {
+//           const canvas = document.createElement('canvas');
+//           const ctx = canvas.getContext('2d');
+//           
+//           // Calculate new dimensions while maintaining aspect ratio
+//           let newWidth = img.width;
+//           let newHeight = img.height;
+//           const maxDimension = 1200;
+//           
+//           if (img.width > maxDimension || img.height > maxDimension) {
+//             if (img.width > img.height) {
+//               newWidth = maxDimension;
+//               newHeight = (img.height / img.width) * maxDimension;
+//             } else {
+//               newHeight = maxDimension;
+//               newWidth = (img.width / img.height) * maxDimension;
+//             }
+//           }
+//           
+//           canvas.width = newWidth;
+//           canvas.height = newHeight;
+//           ctx?.drawImage(img, 0, 0, newWidth, newHeight);
+//           
+//           // Get optimized data URL
+//           const optimizedDataUrl = canvas.toDataURL(file.type, 0.8); // 0.8 quality
+//           resolve(optimizedDataUrl);
+//         } else {
+//           // If image is already small, use the original
+//           resolve(reader.result as string);
+//         }
+//       };
+//       img.src = reader.result as string;
+//     };
+//     reader.onerror = error => reject(error);
+//   });
+// };
 
 export default function Home() {
   const [imageFiles, setImageFiles] = useState<ImageFile[]>([]);
@@ -154,12 +155,11 @@ export default function Home() {
     }
   }, [ocrResults]);
 
-  // Enhanced cleanup function for image URLs
+  // Enhanced cleanup function for image URLs - Using shared utility instead
   const cleanupImageURLs = useCallback(() => {
-    // Release object URLs to prevent memory leaks
-    imageFiles.forEach(imageFile => {
-      URL.revokeObjectURL(imageFile.preview);
-    });
+    // Use the shared utility to clean up image previews
+    cleanupImageFiles(imageFiles);
+    
     // Log that cleanup happened
     console.log(`Cleaned up ${imageFiles.length} image preview URLs`);
   }, [imageFiles]);
@@ -181,10 +181,8 @@ export default function Home() {
         // Clean up base64 image data from memory once we have the PDF
         // This is handled by setting state, which will trigger GC
         setImageFiles(prev => {
-          // Clean up object URLs first
-          prev.forEach(imageFile => {
-            URL.revokeObjectURL(imageFile.preview);
-          });
+          // Clean up object URLs first using shared utility
+          cleanupImageFiles(prev);
           
           console.log('Cleaned up image previews after PDF generation');
           
@@ -245,8 +243,10 @@ export default function Home() {
       // Create a copy of the array without the removed image
       const updatedFiles = [...prevFiles];
       
-      // Release the object URL to prevent memory leaks
-      URL.revokeObjectURL(updatedFiles[index].preview);
+      // Release the object URL to prevent memory leaks - using shared utility
+      if (updatedFiles[index]?.preview) {
+        revokeObjectUrls([updatedFiles[index].preview]);
+      }
       
       // Remove the image from the array
       updatedFiles.splice(index, 1);
@@ -288,15 +288,16 @@ export default function Home() {
       // Process each image file
       for (const imageFile of imageFiles) {
         try {
-          // Get the correct path/filename for matching later
-          const fileName = imageFile.file.webkitRelativePath || imageFile.file.name;
+          // Get the correct path/filename for matching later - using shared utility
+          const fileName = extractFilename(imageFile.file.webkitRelativePath || imageFile.file.name);
           
+          // Use the shared fileToBase64 function with default settings
           const base64 = await fileToBase64(imageFile.file);
           console.log(`Converted ${fileName} to base64 (length: ${base64.length})`);
           
           // Store with both potential keys for matching
-          imageBase64Map.set(fileName, base64);  // Full path
-          imageBase64Map.set(imageFile.file.name, base64);  // Just filename
+          imageBase64Map.set(fileName, base64);  // Just filename
+          imageBase64Map.set(imageFile.file.name, base64);  // Full name
         } catch (error) {
           console.error(`Failed to convert ${imageFile.file.name} to base64:`, error);
         }
@@ -327,9 +328,9 @@ export default function Home() {
         // First try the full name as returned by the OCR API
         let base64 = imageBase64Map.get(result.fileName);
         
-        // If not found, try extracting just the filename without path
+        // If not found, try extracting just the filename without path using shared utility
         if (!base64) {
-          const filename = result.fileName.split(/[\/\\]/).pop() || result.fileName;
+          const filename = extractFilename(result.fileName);
           base64 = imageBase64Map.get(filename);
         }
         

@@ -6,22 +6,33 @@
  * for Next.js API routes.
  */
 
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { handlePdfError, PdfErrorType, PdfGenerationError } from './error';
 import { logger } from '../utils/logger';
+import { getImageFormatFromDataUrl } from '@/lib/utils/shared';
+
+// Customizable PDF settings
+const DEFAULT_FONT_SIZE = 12;
+const DEFAULT_FONT = 'helvetica';
 
 /**
  * Create a new PDF document
  * @returns A configured jsPDF instance
  */
 export function createPdf(): jsPDF {
-  logger.debug('Creating new PDF document');
-  return new jsPDF({
+  const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
+    format: 'a4',
+    compress: true
   });
+  
+  // Set default font
+  doc.setFont(DEFAULT_FONT);
+  doc.setFontSize(DEFAULT_FONT_SIZE);
+  
+  return doc;
 }
 
 /**
@@ -56,46 +67,41 @@ export async function createImageTextPdf(
   const textWidth = workWidth * 0.5;
   
   try {
-    // Try a simpler approach to add the image
-    // Use a placeholder rectangle in case image fails to load
-    doc.setFillColor(240, 240, 240);
-    doc.rect(margin, margin, imageWidth, workHeight * 0.8, 'F');
+    logger.debug('Adding image and text content to PDF');
     
-    // Try to add the image if it's not an SVG
-    if (!imageDataUrl.includes('svg')) {
+    // Add image to the left side
+    if (imageDataUrl && imageDataUrl.trim() !== '') {
       try {
-        // Add image to the left side with basic parameters
+        // Use shared utility to determine the image format
+        const format = getImageFormatFromDataUrl(imageDataUrl);
         doc.addImage(
           imageDataUrl,
-          'JPEG', // Format (JPEG, PNG, etc.)
+          format,
           margin,
           margin,
           imageWidth,
           workHeight * 0.8
         );
-        logger.debug('Successfully added image to PDF');
-      } catch (imgError) {
-        logger.warn('Could not add image to PDF', {
-          error: (imgError as Error).message
+      } catch (error) {
+        // Add a placeholder for the image
+        logger.warn('Failed to add image to PDF', {
+          error: (error as Error).message,
+          errorType: 'IMAGE_PROCESSING'
         });
         
-        // Add a placeholder text on error
+        doc.setFillColor(240, 240, 240);
+        doc.rect(margin, margin, imageWidth, workHeight * 0.8, 'F');
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.text('[ Image could not be displayed ]', margin + 5, margin + 30);
-        
-        // Log the error but continue with PDF generation
-        logger.error('Error adding image to PDF', {
-          error: (imgError as Error).message,
-          stack: (imgError as Error).stack
-        });
       }
     } else {
-      // SVG not directly supported, show placeholder text
-      logger.warn('SVG image format not supported');
+      // If no image data, show a placeholder
+      doc.setFillColor(240, 240, 240);
+      doc.rect(margin, margin, imageWidth, workHeight * 0.8, 'F');
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
-      doc.text('[ SVG image not supported ]', margin + 5, margin + 30);
+      doc.text('[ No image data available ]', margin + 5, margin + 30);
     }
     
     // Add a divider line
@@ -191,13 +197,8 @@ export async function createMultiPagePdf(
             dataUrlPreview: pair.imageDataUrl.substring(0, 30) + '...'
           });
           
-          // For data URLs, we need to extract the format
-          let format = 'JPEG'; // Default format
-          if (pair.imageDataUrl.includes('data:image/png')) {
-            format = 'PNG';
-          } else if (pair.imageDataUrl.includes('data:image/jpeg') || pair.imageDataUrl.includes('data:image/jpg')) {
-            format = 'JPEG';
-          }
+          // Use shared utility to determine image format
+          const format = getImageFormatFromDataUrl(pair.imageDataUrl);
           
           // Add image to the left side with basic parameters
           doc.addImage(

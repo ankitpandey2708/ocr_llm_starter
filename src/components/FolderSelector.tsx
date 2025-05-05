@@ -3,114 +3,115 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "react-toastify";
+import { analyzeMimeType, createOptimizedPreview, hasValidImageExtension } from "@/lib/utils/shared";
 
 export interface ImageFile {
   file: File;
   preview: string;
 }
 
-// Helper function to analyze MIME types
-const analyzeMimeType = async (file: File): Promise<boolean> => {
-  try {
-    // Read the first few bytes of the file to check headers
-    const headerBytes = await file.slice(0, 12).arrayBuffer();
-    const headerView = new Uint8Array(headerBytes);
-    
-    // Try to identify common image formats by magic numbers
-    if (headerView[0] === 0xFF && headerView[1] === 0xD8 && headerView[2] === 0xFF) {
-      console.log(`File: ${file.name} - Magic number indicates JPEG format`);
-      return true;
-    } else if (
-      headerView[0] === 0x89 && headerView[1] === 0x50 && 
-      headerView[2] === 0x4E && headerView[3] === 0x47 &&
-      headerView[4] === 0x0D && headerView[5] === 0x0A &&
-      headerView[6] === 0x1A && headerView[7] === 0x0A
-    ) {
-      console.log(`File: ${file.name} - Magic number indicates PNG format`);
-      return true;
-    } else if (
-      headerView[0] === 0x52 && headerView[1] === 0x49 && 
-      headerView[2] === 0x46 && headerView[3] === 0x46 &&
-      headerView[8] === 0x57 && headerView[9] === 0x45 &&
-      headerView[10] === 0x42 && headerView[11] === 0x50
-    ) {
-      console.log(`File: ${file.name} - Magic number indicates WebP format`);
-      return true;
-    } else if (
-      (headerView[4] === 0x66 && headerView[5] === 0x74 && 
-       headerView[6] === 0x79 && headerView[7] === 0x70) &&
-      ((headerView[8] === 0x68 && headerView[9] === 0x65 && 
-        headerView[10] === 0x69 && headerView[11] === 0x63) ||
-       (headerView[8] === 0x68 && headerView[9] === 0x65 && 
-        headerView[10] === 0x69 && headerView[11] === 0x66) ||
-       (headerView[8] === 0x6D && headerView[9] === 0x69 && 
-        headerView[10] === 0x66 && headerView[11] === 0x31))
-    ) {
-      console.log(`File: ${file.name} - Magic number indicates HEIC/HEIF format`);
-      return true;
-    } else {
-      console.log(`File: ${file.name} - Magic number doesn't match supported image formats`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`Error analyzing MIME type for ${file.name}:`, error);
-    return false;
-  }
-};
+// Helper function to analyze MIME types - This is now imported from shared.ts
+// const analyzeMimeType = async (file: File): Promise<boolean> => {
+//   try {
+//     // Read the first few bytes of the file to check headers
+//     const headerBytes = await file.slice(0, 12).arrayBuffer();
+//     const headerView = new Uint8Array(headerBytes);
+//     
+//     // Try to identify common image formats by magic numbers
+//     if (headerView[0] === 0xFF && headerView[1] === 0xD8 && headerView[2] === 0xFF) {
+//       console.log(`File: ${file.name} - Magic number indicates JPEG format`);
+//       return true;
+//     } else if (
+//       headerView[0] === 0x89 && headerView[1] === 0x50 && 
+//       headerView[2] === 0x4E && headerView[3] === 0x47 &&
+//       headerView[4] === 0x0D && headerView[5] === 0x0A &&
+//       headerView[6] === 0x1A && headerView[7] === 0x0A
+//     ) {
+//       console.log(`File: ${file.name} - Magic number indicates PNG format`);
+//       return true;
+//     } else if (
+//       headerView[0] === 0x52 && headerView[1] === 0x49 && 
+//       headerView[2] === 0x46 && headerView[3] === 0x46 &&
+//       headerView[8] === 0x57 && headerView[9] === 0x45 &&
+//       headerView[10] === 0x42 && headerView[11] === 0x50
+//     ) {
+//       console.log(`File: ${file.name} - Magic number indicates WebP format`);
+//       return true;
+//     } else if (
+//       (headerView[4] === 0x66 && headerView[5] === 0x74 && 
+//        headerView[6] === 0x79 && headerView[7] === 0x70) &&
+//       ((headerView[8] === 0x68 && headerView[9] === 0x65 && 
+//         headerView[10] === 0x69 && headerView[11] === 0x63) ||
+//        (headerView[8] === 0x68 && headerView[9] === 0x65 && 
+//         headerView[10] === 0x69 && headerView[11] === 0x66) ||
+//        (headerView[8] === 0x6D && headerView[9] === 0x69 && 
+//         headerView[10] === 0x66 && headerView[11] === 0x31))
+//     ) {
+//       console.log(`File: ${file.name} - Magic number indicates HEIC/HEIF format`);
+//       return true;
+//     } else {
+//       console.log(`File: ${file.name} - Magic number doesn't match supported image formats`);
+//       return false;
+//     }
+//   } catch (error) {
+//     console.error(`Error analyzing MIME type for ${file.name}:`, error);
+//     return false;
+//   }
+// };
 
-// Create optimized preview URLs that balance quality and performance
-const createOptimizedPreview = async (file: File): Promise<string> => {
-  return new Promise((resolve) => {
-    // For very large files, we'll create an optimized preview
-    if (file.size > 5 * 1024 * 1024) { // 5MB threshold
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          // Create a canvas to resize the image
-          const canvas = document.createElement('canvas');
-          
-          // Calculate new dimensions (max 800px width or height)
-          const maxDimension = 800;
-          let width = img.width;
-          let height = img.height;
-          
-          if (width > height && width > maxDimension) {
-            height = Math.round(height * (maxDimension / width));
-            width = maxDimension;
-          } else if (height > maxDimension) {
-            width = Math.round(width * (maxDimension / height));
-            height = maxDimension;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          // Draw the resized image
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Convert to data URL with reduced quality
-          const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          resolve(optimizedDataUrl);
-        };
-        img.onerror = () => {
-          // If optimization fails, fall back to object URL
-          resolve(URL.createObjectURL(file));
-        };
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => {
-        // If reading fails, fall back to object URL
-        resolve(URL.createObjectURL(file));
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // For smaller files, use standard object URL
-      resolve(URL.createObjectURL(file));
-    }
-  });
-};
+// Create optimized preview URLs - This is now imported from shared.ts
+// const createOptimizedPreview = async (file: File): Promise<string> => {
+//   return new Promise((resolve) => {
+//     // For very large files, we'll create an optimized preview
+//     if (file.size > 5 * 1024 * 1024) { // 5MB threshold
+//       const reader = new FileReader();
+//       reader.onload = (e) => {
+//         const img = new Image();
+//         img.onload = () => {
+//           // Create a canvas to resize the image
+//           const canvas = document.createElement('canvas');
+//           
+//           // Calculate new dimensions (max 800px width or height)
+//           const maxDimension = 800;
+//           let width = img.width;
+//           let height = img.height;
+//           
+//           if (width > height && width > maxDimension) {
+//             height = Math.round(height * (maxDimension / width));
+//             width = maxDimension;
+//           } else if (height > maxDimension) {
+//             width = Math.round(width * (maxDimension / height));
+//             height = maxDimension;
+//           }
+//           
+//           canvas.width = width;
+//           canvas.height = height;
+//           
+//           // Draw the resized image
+//           const ctx = canvas.getContext('2d');
+//           ctx?.drawImage(img, 0, 0, width, height);
+//           
+//           // Convert to data URL with reduced quality
+//           const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+//           resolve(optimizedDataUrl);
+//         };
+//         img.onerror = () => {
+//           // If optimization fails, fall back to object URL
+//           resolve(URL.createObjectURL(file));
+//         };
+//         img.src = e.target?.result as string;
+//       };
+//       reader.onerror = () => {
+//         // If reading fails, fall back to object URL
+//         resolve(URL.createObjectURL(file));
+//       };
+//       reader.readAsDataURL(file);
+//     } else {
+//       // For smaller files, use standard object URL
+//       resolve(URL.createObjectURL(file));
+//     }
+//   });
+// };
 
 interface FolderSelectorProps {
   onFolderSelect: (files: ImageFile[]) => void;
@@ -192,15 +193,8 @@ export function FolderSelector({
           
           totalFiles++;
           
-          const fileName = file.name.toLowerCase();
-          const hasValidExtension = (
-            fileName.endsWith(".jpg") ||
-            fileName.endsWith(".jpeg") ||
-            fileName.endsWith(".png") ||
-            fileName.endsWith(".webp") ||
-            fileName.endsWith(".heic") ||
-            fileName.endsWith(".heif")
-          );
+          // Use the shared utility for extension validation
+          const hasValidExtension = hasValidImageExtension(file.name);
           
           if (!hasValidExtension) {
             console.warn(`Skipping file with invalid extension: ${file.name}`);
@@ -218,7 +212,7 @@ export function FolderSelector({
           }
           
           try {
-            // Create optimized preview for better performance
+            // Create optimized preview for better performance using the shared utility
             const preview = await createOptimizedPreview(file);
             
             result.push({ 

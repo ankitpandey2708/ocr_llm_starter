@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { initGeminiApi, cleanupTempFiles, cleanupLeftoverTempFiles, verifyTempFilesCleanup } from "@/lib/utils/server";
 import { logger } from "@/lib/utils/logger";
+import { extractFilename } from "@/lib/utils/shared";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -79,7 +80,7 @@ function isCriticalError(error: Error): boolean {
 async function processImageWithGeminiApi(file: File): Promise<string> {
   // Create a unique temp file path with just the filename, not the full path
   // Get only the file name without any path components
-  const fileName = file.name.split(/[\/\\]/).pop() || file.name;
+  const fileName = extractFilename(file.name);
   const tempFilePath = join(tmpdir(), `${uuidv4()}-${fileName}`);
   
   try {
