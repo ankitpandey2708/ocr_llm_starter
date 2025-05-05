@@ -17,14 +17,12 @@ const CopyButton = ({ text, className = "", size = 18 }: CopyButtonProps) => {
     try {
       await navigator.clipboard.writeText(text);
       setIsCopied(true);
-      toast.success("Text copied to clipboard");
       
       // Reset the icon after 2 seconds
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (err) {
-      toast.error("Failed to copy text");
       console.error("Failed to copy text: ", err);
     }
   };
