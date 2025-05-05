@@ -507,7 +507,7 @@ export default function Home() {
                         </div>
                         <button
                           onClick={() => handleRemoveImage(index)}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                           aria-label="Remove image"
                         >
                           <X size={16} />
