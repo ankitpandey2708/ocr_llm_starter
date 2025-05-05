@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
-import { toast } from "react-toastify";
 
 interface CopyButtonProps {
   text: string;
